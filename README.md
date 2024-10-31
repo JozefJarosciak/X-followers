@@ -47,6 +47,10 @@
 
 3. **Output**: The script will display the progress of data collection, save data to a CSV file, and display the top followers sorted by follower count.
 
+Screenshot example:
+   ![image](https://github.com/user-attachments/assets/2ee45e38-7746-4086-86d8-e1e887b864ae)
+
+
 ## Script Structure
 
 - `get_all_follower_ids(handle)`: Retrieves all follower IDs for the specified handle.
