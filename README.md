@@ -20,9 +20,9 @@
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/JozefJarosciak/X-followers/x-followers.git
-   cd x-followers
-   ```
+   git clone https://github.com/JozefJarosciak/X-followers.git
+   cd X-followers
+
 
 2. Install required packages:
    ```bash
