@@ -6,8 +6,8 @@ import pandas as pd
 from tabulate import tabulate
 
 # === Configuration Section ===
-bearer_token = ""  # Twitter API Bearer Token
-handle = ""  # Twitter handle to analyze (do not include the @ sign), e.g. "ackebom"
+bearer_token = ""  # X.com API Bearer Token
+handle = ""  # X.com handle to analyze (do not include the @ sign). E.g. "xenpub"
 top_n = 20  # Number of top followers to display
 use_existing_data_only = True  # If True, use existing data without fetching new
 
@@ -15,13 +15,14 @@ use_existing_data_only = True  # If True, use existing data without fetching new
 output_columns = {
     'screen_name': {'label': 'Screen Name'},
     'followers_count': {'label': 'Followers Count', 'sort': True},
-    'joined': {'label': 'Joined Twitter'},
+    'joined': {'label': 'Joined X.com'},
     'name': {'label': 'Name'}
 }
 
 # === API Endpoints ===
-ENDPOINT_FOLLOWERS_IDS = "https://api.twitter.com/1.1/followers/ids.json"
-ENDPOINT_USERS_LOOKUP = "https://api.twitter.com/1.1/users/lookup.json"
+ENDPOINT_FOLLOWERS_IDS = "https://api.X.com.com/1.1/followers/ids.json"
+ENDPOINT_USERS_LOOKUP = "https://api.X.com.com/1.1/users/lookup.json"
+ENDPOINT_USER_SHOW = "https://api.X.com.com/1.1/users/show.json"
 
 # === Headers Setup ===
 headers = {
@@ -30,19 +31,42 @@ headers = {
 
 # === Function Definitions ===
 
-def get_all_follower_ids(handle):
+def get_follower_count(handle):
     """
-    Retrieve all follower IDs for a given Twitter handle.
+    Retrieve the total follower count for the specified X.com handle.
 
     Args:
-        handle (str): Twitter handle to fetch followers for.
+        handle (str): X.com handle to fetch follower count for.
 
     Returns:
-        list: List of follower IDs.
+        int: Total number of followers for the handle.
     """
+    response = requests.get(ENDPOINT_USER_SHOW, headers=headers, params={"screen_name": handle})
+    if response.status_code == 200:
+        data = response.json()
+        return data.get("followers_count", 0)
+    else:
+        raise Exception(f"Error fetching follower count: {response.status_code} - {response.text}")
+
+def get_all_follower_ids(handle, existing_ids):
+    """
+    Retrieve all follower IDs for a given X.com handle, filtering out existing ones.
+
+    Args:
+        handle (str): X.com handle to fetch followers for.
+        existing_ids (set): Set of IDs already processed to avoid re-fetching.
+
+    Returns:
+        list: List of new follower IDs not in existing_ids.
+    """
+    total_followers = get_follower_count(handle)  # Get estimated total followers count
     follower_ids = []
     next_cursor = -1
     session = requests.Session()
+    total_retrieved = 0
+    skipped_ids = 0  # Track how many IDs were skipped
+
+    print(f"Starting follower ID retrieval for @{handle}. Estimated total followers: {total_followers}")
 
     # Loop through paginated requests until all followers are retrieved
     while True:
@@ -52,19 +76,41 @@ def get_all_follower_ids(handle):
         # Handle rate limits
         if response.status_code == 429:
             reset_time = int(response.headers.get('x-rate-limit-reset', time.time() + 60))
-            time.sleep(max(reset_time - int(time.time()) + 1, 0))
+            current_time = int(time.time())
+            sleep_duration = max(reset_time - current_time, 1)  # Calculate remaining time until reset
+            print(f"\rRate limit hit. Sleeping for {sleep_duration} seconds...", end="")
+            time.sleep(sleep_duration)
             continue
         elif response.status_code != 200:
+            print(f"\nError encountered: {response.status_code} - {response.text}")
             raise Exception(f"Error: {response.status_code} - {response.text}")
 
         data = response.json()
-        follower_ids.extend(data.get('ids', []))
+
+        # Process and filter IDs as they are retrieved
+        retrieved_ids = data.get('ids', [])
+        new_ids = [id for id in retrieved_ids if str(id) not in existing_ids]
+        skipped_ids += len(retrieved_ids) - len(new_ids)  # Track how many were skipped
+
+        # Extend follower IDs list with new ones
+        follower_ids.extend(new_ids)
+        total_retrieved += len(new_ids)
         next_cursor = data.get('next_cursor', 0)
+
+        # Display ongoing progress
+        progress_percentage = min((total_retrieved / total_followers) * 100, 100)
+        print(f"\rRetrieving follower IDs: {progress_percentage:.2f}% complete "
+              f"({total_retrieved}/{total_followers}) - Skipped {skipped_ids} existing IDs", end="")
 
         # Break loop if there are no more pages
         if next_cursor == 0:
             break
+
+    print("\nFollower ID retrieval complete. Total new IDs retrieved:", total_retrieved)
     return follower_ids
+
+
+
 
 def load_existing_user_ids(filename):
     """
@@ -82,7 +128,7 @@ def load_existing_user_ids(filename):
 
 def get_user_details(ids_list, filename, retries=3, delay=5):
     """
-    Fetch user details for a list of follower IDs and update the CSV file.
+    Fetch user details for a list of follower IDs and continuously update the CSV file.
 
     Args:
         ids_list (list): List of follower IDs.
@@ -92,16 +138,21 @@ def get_user_details(ids_list, filename, retries=3, delay=5):
     """
     existing_ids = load_existing_user_ids(filename)
     fieldnames = ['timestamp', 'id', 'screen_name', 'name', 'followers_count', 'created_at']
-    new_data = []
     session = requests.Session()
 
     total_ids = len(ids_list)  # Total number of IDs to process
     processed_ids = 0  # Counter to track progress
 
+    # Prepare the CSV file for continuous writing
+    if not os.path.exists(filename):
+        with open(filename, 'w') as f:
+            pd.DataFrame(columns=fieldnames).to_csv(f, index=False)
+
     for i in range(0, total_ids, 100):
+        # Filter out already existing IDs
         ids_chunk = [str(id) for id in ids_list[i:i + 100] if str(id) not in existing_ids]
         if not ids_chunk:
-            processed_ids += len(ids_chunk)  # Update counter even if skipped
+            processed_ids += len(ids_chunk)
             continue
 
         # Retry loop for handling connection issues
@@ -120,9 +171,10 @@ def get_user_details(ids_list, filename, retries=3, delay=5):
                 elif response.status_code != 200:
                     raise Exception(f"Error: {response.status_code} - {response.text}")
 
-                # Add new user data
+                # Add new user data and write to file incrementally
                 data = response.json()
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                new_data = []
                 for user in data:
                     user_data = {
                         'timestamp': timestamp,
@@ -135,6 +187,8 @@ def get_user_details(ids_list, filename, retries=3, delay=5):
                     new_data.append(user_data)
                     existing_ids.add(user['id_str'])
 
+                # Continuously append new data to CSV file
+                pd.DataFrame(new_data).to_csv(filename, mode='a', header=False, index=False)
                 processed_ids += len(ids_chunk)
                 break  # Exit retry loop if successful
 
@@ -144,23 +198,10 @@ def get_user_details(ids_list, filename, retries=3, delay=5):
 
         # Calculate and display progress
         progress_percentage = (processed_ids / total_ids) * 100
-        print(f"\rProgress: {progress_percentage:.2f}% - Processed {processed_ids} of {total_ids} followers", end="")
+        print(f"\rCollecting user details: {progress_percentage:.2f}% - Processed {processed_ids} of {total_ids} followers", end="")
 
     # Final newline after progress completion
     print("\nData collection complete.")
-
-    # Save or update CSV file with new data if any
-    if new_data:
-        if os.path.exists(filename):
-            existing_data = pd.read_csv(filename)
-            all_data = pd.concat([pd.DataFrame(new_data), existing_data], ignore_index=True)
-        else:
-            all_data = pd.DataFrame(new_data)
-        all_data.to_csv(filename, index=False, columns=fieldnames)
-        print("User details updated and written to the file.")
-    else:
-        print("No new user data to update.")
-
 
 def display_top_followers(filename, top_n=50):
     """
@@ -186,40 +227,71 @@ def display_top_followers(filename, top_n=50):
     df = df[list(selected_columns.keys())].rename(columns=selected_columns)
 
     # Format dates and numbers
-    if 'Joined Twitter' in df.columns:
-        df['Joined Twitter'] = pd.to_datetime(df['Joined Twitter'], errors='coerce').dt.strftime('%a %b %d, %Y').fillna('N/A')
+    if 'Joined X.com' in df.columns:
+        df['Joined X.com'] = pd.to_datetime(df['Joined X.com'], errors='coerce').dt.strftime('%a %b %d, %Y').fillna('N/A')
     if 'Followers Count' in df.columns:
         df['Followers Count'] = pd.to_numeric(df['Followers Count'], errors='coerce').fillna(0).astype(int).apply(lambda x: f"{x:,}")
 
     # Display the top followers table
     top_followers = df.head(top_n)
     top_followers.index += 1
-    print(f"\nTop {top_n} Accounts Following @{handle}\n(Ranked by {sort_column_display})")
+
+    # Set up color codes
+    color_reset = "\033[0m"
+    color_blue = "\033[94m"
+    color_white = "\033[97m"
+    color_bold = "\033[1m"
+
+    # Define handle display with lines before and after
+    handle_text = f"User: @{handle}"
+    total_width = 50
+    line = f"{color_blue}{color_bold}{'─' * total_width}{color_reset}"
+
+    # Display user handle with colorized lines above and below
+    handle_display = f"""{line}
+{color_blue}{color_bold}──{color_reset}{color_white}{handle_text.center(total_width - 4)}{color_reset}{color_blue}{color_bold}──{color_reset}
+{line}"""
+
+    print(handle_display)
+    print(f"Top {top_n} Accounts Following @{handle} (Ranked by {sort_column_display})")
     print(tabulate(top_followers, headers='keys', tablefmt='psql', showindex=True))
 
 # === Main Execution ===
 
 def main():
     filename = f"{handle}_followers.csv"
+    existing_ids = load_existing_user_ids(filename)  # Load IDs that were already processed
 
     if use_existing_data_only:
         if os.path.exists(filename):
             print(f"Using existing file '{filename}' without fetching new data.")
         else:
             print(f"No existing file found. Fetching data for @{handle}...")
-            follower_ids = get_all_follower_ids(handle)
+            follower_ids = get_all_follower_ids(handle, existing_ids)
             get_user_details(follower_ids, filename)
     else:
-        follower_ids = get_all_follower_ids(handle)
-        if os.path.exists(filename):
-            existing_ids = load_existing_user_ids(filename)
-            remaining_ids = [id for id in follower_ids if str(id) not in existing_ids]
-            if remaining_ids:
-                get_user_details(remaining_ids, filename)
-        else:
-            get_user_details(follower_ids, filename)
+        print("Fetching all follower IDs...")
+        follower_ids = get_all_follower_ids(handle, existing_ids)  # Fetch all follower IDs
+        print("\nFiltering out already processed follower IDs...")
+
+        # Filter out already existing IDs with progress display
+        remaining_ids = []
+        for index, id in enumerate(follower_ids):
+            if str(id) not in existing_ids:
+                remaining_ids.append(id)
+            # Display progress for filtering
+            progress_percentage = (index + 1) / len(follower_ids) * 100
+            print(f"\rFiltering follower IDs: {progress_percentage:.2f}% complete", end="")
+
+        print("\nFiltering complete.")
+
+        if remaining_ids:
+            get_user_details(remaining_ids, filename)
+
+
 
     display_top_followers(filename, top_n=top_n)
+
 
 if __name__ == "__main__":
     main()
