@@ -228,7 +228,7 @@ def display_top_followers(filename, top_n=50):
 
     # Format dates and numbers
     if 'Joined X.com' in df.columns:
-        df['Joined X.com'] = pd.to_datetime(df['Joined X.com'], errors='coerce').dt.strftime('%a %b %d, %Y').fillna('N/A')
+        df['Joined X.com'] = pd.to_datetime(df['Joined X.com'], format='%a %b %d %H:%M:%S %z %Y', errors='coerce').dt.strftime('%a %b %d, %Y').fillna('N/A')
     if 'Followers Count' in df.columns:
         df['Followers Count'] = pd.to_numeric(df['Followers Count'], errors='coerce').fillna(0).astype(int).apply(lambda x: f"{x:,}")
 
