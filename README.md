@@ -1,7 +1,8 @@
 
 # X.com (Twitter) Follower Data Extractor
 
-`x-followers.py` is a Python script that extracts follower data from a specified X.com handle and displays the top followers based on follower count. It provides options to use cached data or fetch new data from X.com's API, with progress tracking and retry handling for API rate limits.
+`x-followers.py` is a Python script that extracts follower data from a specified X.com handle and displays the top followers based on their popularity (follower count). 
+Script also provides options to use cached data or fetch new data from X.com's API, with progress tracking and retry handling for API rate limits.
 
 ## Features
 
@@ -71,6 +72,10 @@ To use this script, you'll need an X.com API Bearer Token. Follow these steps to
    ```
 
 3. **Output**: The script will display the progress of data collection, save data to a CSV file, and display the top followers sorted by follower count.
+
+Example output:
+
+![image](https://github.com/user-attachments/assets/233d5191-44a3-4476-8568-c6ce4b1ecc74)
 
    
 
