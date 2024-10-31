@@ -17,15 +17,15 @@
 - X.com API Bearer Token
 
 
-## Getting a Twitter API Bearer Token
+## Getting an X.com API Bearer Token
 
-To use this script, you'll need a Twitter API Bearer Token. Follow these steps to obtain one:
+To use this script, you'll need an X.com API Bearer Token. Follow these steps to obtain one:
 
-1. **Apply for a Twitter Developer Account**:
-   - Visit the [Twitter Developer website](https://developer.twitter.com/) and apply for a developer account if you don't already have one.
+1. **Apply for an X.com Developer Account**:
+   - Visit the [X Developer website](https://developer.x.com/en) and apply for a developer account if you don't already have one.
 
 2. **Create a New Project and App**:
-   - Log in to the Twitter Developer portal after your account is approved.
+   - Log in to the X.com Developer portal after your account is approved.
    - Navigate to the **Projects & Apps** section and create a new project and app. 
    - This will generate API keys and tokens specific to your app.
 
@@ -40,7 +40,7 @@ To use this script, you'll need a Twitter API Bearer Token. Follow these steps t
      bearer_token = "YOUR_BEARER_TOKEN_HERE"
      ```
 
-   This token allows the script to authenticate with the Twitter API and access follower information.
+   This token allows the script to authenticate with the X.com API and access follower information.
 
 
 ## Installation
