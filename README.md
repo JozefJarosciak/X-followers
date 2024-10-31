@@ -16,6 +16,33 @@
 - Python 3.6+
 - X.com API Bearer Token
 
+
+## Getting a Twitter API Bearer Token
+
+To use this script, you'll need a Twitter API Bearer Token. Follow these steps to obtain one:
+
+1. **Apply for a Twitter Developer Account**:
+   - Visit the [Twitter Developer website](https://developer.twitter.com/) and apply for a developer account if you don't already have one.
+
+2. **Create a New Project and App**:
+   - Log in to the Twitter Developer portal after your account is approved.
+   - Navigate to the **Projects & Apps** section and create a new project and app. 
+   - This will generate API keys and tokens specific to your app.
+
+3. **Generate the Bearer Token**:
+   - Go to the **Keys and Tokens** tab in your app's settings.
+   - Under **Bearer Token**, click **Generate** (or **Regenerate** if you already have one). Copy the token.
+
+4. **Add the Bearer Token to the Script**:
+   - In `x-followers.py`, paste your Bearer Token in the `bearer_token` variable:
+
+     ```python
+     bearer_token = "YOUR_BEARER_TOKEN_HERE"
+     ```
+
+   This token allows the script to authenticate with the Twitter API and access follower information.
+
+
 ## Installation
 
 1. Clone the repository:
