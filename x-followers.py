@@ -20,9 +20,9 @@ output_columns = {
 }
 
 # === API Endpoints ===
-ENDPOINT_FOLLOWERS_IDS = "https://api.X.com.com/1.1/followers/ids.json"
-ENDPOINT_USERS_LOOKUP = "https://api.X.com.com/1.1/users/lookup.json"
-ENDPOINT_USER_SHOW = "https://api.X.com.com/1.1/users/show.json"
+ENDPOINT_FOLLOWERS_IDS = "https://api.x.com/1.1/followers/ids.json"
+ENDPOINT_USERS_LOOKUP = "https://api.x.com/1.1/users/lookup.json"
+ENDPOINT_USER_SHOW = "https://api.x.com/1.1/users/show.json"
 
 # === Headers Setup ===
 headers = {
