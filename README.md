@@ -63,7 +63,7 @@ To use this script, you'll need an X.com API Bearer Token. Follow these steps to
 
    ```python
    bearer_token = "<your_bearer_token>"
-   handle = "<x.com_handle>"  # Example: "ackebom" (without the @ sign)
+   handle = "<x.com_handle>"  # Example: "xenpub" (without the @ sign)
    ```
 
 2. **Run the Script**:
